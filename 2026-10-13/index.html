@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MATSim Acceleration Update</title>
+<style>
+:root{
+  --bg:#f7f7f5; --panel:#fff; --ink:#1b1f24; --muted:#5f6670; --rule:#dfe2e6;
+  --accent:#2f6fd0; --accent-soft:#e3ecfa; --grey:#a7adb5; --good:#2f8a57; --bad:#c2453b;
+  --pol:#0d6a70; --pol-soft:#e0f0ef; --mat:#a4521b; --mat-soft:#f7e8db;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121417; --panel:#1a1d21; --ink:#e8eaed; --muted:#9aa1ab; --rule:#2c3036;
+  --accent:#6aa0ef; --accent-soft:#1d2b40; --grey:#6c737c; --good:#5cbf86; --bad:#e2766c; --pol:#55bcc0; --pol-soft:#15373a; --mat:#e39760; --mat-soft:#3b291b;}}
+:root[data-theme="dark"]{
+  --bg:#121417; --panel:#1a1d21; --ink:#e8eaed; --muted:#9aa1ab; --rule:#2c3036;
+  --accent:#6aa0ef; --accent-soft:#1d2b40; --grey:#6c737c; --good:#5cbf86; --bad:#e2766c; --pol:#55bcc0; --pol-soft:#15373a; --mat:#e39760; --mat-soft:#3b291b;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+main{max-width:920px;margin:0 auto;padding:40px 16px 64px;display:grid;gap:36px}
+.meta{font-size:13px;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+h1{font-size:clamp(26px,4vw,34px);line-height:1.2;margin:6px 0 0}
+h2{font-size:19px;margin:0 0 12px}
+p{margin:0}
+.tldr{background:var(--accent-soft);border-left:4px solid var(--accent);padding:14px 18px;border-radius:6px;font-size:17px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.kpi{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px 16px}
+.kpi b{display:block;font-size:22px;font-variant-numeric:tabular-nums}
+.kpi span{font-size:14px;color:var(--muted)}
+.tag{font-size:12px;font-style:italic}
+.figure{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:16px;overflow-x:auto}
+.figure svg{display:block;width:100%;min-width:600px;height:auto}
+.note{font-size:13px;color:var(--muted);margin-top:8px}
+table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--rule);font-size:15px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font-size:13px;color:var(--muted);font-weight:600}
+tr:last-child td{border-bottom:0}
+.g{color:var(--good);font-weight:600}.n{color:var(--bad);font-weight:600}.u{color:var(--muted);font-weight:600}
+ol,ul{margin:0;padding-left:22px;display:grid;gap:6px}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:16px}
+.card h3{margin:0 0 8px;font-size:16px}
+.arch{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:760px){.arch{grid-template-columns:1fr}}
+.arch .figure svg{min-width:0}
+.arch h3{margin:0 0 6px;font-size:16px}
+.pol{color:var(--pol)}.mat{color:var(--mat)}
+svg text{fill:var(--ink)}
+svg .sm{font-size:12px;fill:var(--muted)}
+svg .xs{font-size:11px;fill:var(--muted)}
+svg .b{font-weight:700}
+svg .box{fill:var(--panel);stroke:var(--rule);stroke-width:1.2}
+svg .boxp{fill:var(--pol-soft);stroke:var(--pol);stroke-width:1.4}
+svg .boxm{fill:var(--mat-soft);stroke:var(--mat);stroke-width:1.4}
+svg .frame{fill:none;stroke:var(--muted);stroke-width:1;stroke-dasharray:5 4}
+svg .ln{fill:none;stroke:var(--muted);stroke-width:1.4}
+svg .lnp{fill:none;stroke:var(--pol);stroke-width:2}
+svg .lnm{fill:none;stroke:var(--mat);stroke-width:2}
+svg .dash{stroke-dasharray:5 4}
+svg .tp{fill:var(--pol)} svg .tm{fill:var(--mat)}
+svg .ah{fill:var(--muted)} svg .ahp{fill:var(--pol)} svg .ahm{fill:var(--mat)}
+.formula{font-size:17px;margin-bottom:12px}
+.formula b{color:var(--accent)}
+.levers{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}
+.lever{background:var(--panel);border:1px solid var(--rule);border-top:4px solid var(--grey);border-radius:8px;padding:14px 16px;display:grid;gap:6px;align-content:start}
+.lever.research{border-top-color:var(--accent)}
+.lever h3{margin:0;font-size:16px}
+.lever .q{font-size:14px;color:var(--muted)}
+.lever .role{font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.lever.research .role{color:var(--accent)}
+.lever p{font-size:14px}
+.levtab td:first-child{font-weight:600;color:var(--muted);width:32px}
+.levtab td:nth-child(2){width:150px}
+.levtab td:nth-child(3){width:200px}
+.levtab .sub{font-size:13px;color:var(--muted)}
+.levtab ul{gap:3px;font-size:14px;padding-left:18px}
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <div class="meta">Road pricing · MATSim acceleration · Weekly update · Oct 13, 2026</div>
+  <h1>We know where MATSim-NYC spends its time. Next: which speedups are generic, not NYC-specific.</h1>
+</header>
+
+<p class="tldr">The model does not settle within its 80 innovation iterations. Before investing more, we check which acceleration opportunities also appear in a second, well-calibrated scenario (Berlin).</p>
+
+<section>
+  <h2>What we measured on NYC</h2>
+  <div class="kpis">
+    <div class="kpi"><b>9–10 h</b><span>per 100-iteration run (ORCD, 16 threads)</span></div>
+    <div class="kpi"><b>78%</b><span>of run time in traffic simulation, using only 3.8 of 16 cores</span></div>
+    <div class="kpi"><b>−26%</b><span>wall time from dropping per-iteration event XML; results bit-identical</span></div>
+    <div class="kpi"><b>1.6–2.2×</b><span>PSim speedup, but −20% to −74% score bias (transit)</span></div>
+    <div class="kpi"><b>~29%</b><span>of innovation slots actually change outcomes <span class="tag">(preliminary, 12 it.)</span></span></div>
+  </div>
+</section>
+
+<section>
+  <h2>Same 100 iterations: NYC drifts 13–17 pp, Berlin under 0.5 pp</h2>
+  <div class="figure"><svg id="drift" viewBox="0 0 760 330" role="img" aria-label="Mode share drift, NYC vs Berlin"></svg></div>
+  <p class="note">10-iteration averages, change vs. iterations 0–9. NYC: our run (seed 4711, cold start, 30% innovate, innovation off after 80). Berlin: first 100 of TU Berlin's published 500-iteration v6.4 1% run; it innovates <b>more</b> (35–45% of agents per iteration) yet barely moves. Caveat: Berlin starts from calibrated plans (warm start), NYC from cold. NYC screenline +75% vs. the paper's +1.8%; we use the model as released and record this as a known limitation.</p>
+</section>
+
+<section>
+  <h2>Generic or NYC-specific? (zero-cost check on public Berlin outputs)</h2>
+  <table>
+    <thead><tr><th>Observation</th><th>NYC</th><th>Berlin</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr><td>Traffic simulation share of run time</td><td>78%</td><td>85%</td><td class="g">Generic</td></tr>
+      <tr><td>Replanning share of run time</td><td>11%</td><td>10%</td><td class="g">Generic</td></tr>
+      <tr><td>Score rises until innovation is switched off</td><td>Yes</td><td>Yes</td><td class="g">Generic</td></tr>
+      <tr><td>Large mode-share drift</td><td>+17 pp</td><td>&lt; 2 pp</td><td class="n">Likely NYC</td></tr>
+      <tr><td>Replanning redundancy / predictability</td><td>Yes</td><td>Not public</td><td class="u">Needs a run</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Three levers on cost</h2>
+  <p class="formula">Total cost ≈ <b>K</b> policies × <b>N</b> iterations × cost per iteration</p>
+  <table class="levtab">
+    <thead><tr><th>#</th><th>What to optimize</th><th>Question</th><th>How</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><b>Cost per iteration</b><br><span class="sub">the simulation itself</span></td><td>Can one simulation run faster?</td>
+        <td><ul>
+          <li>Compute indicators online instead of writing event files every iteration</li>
+          <li>Move heavy event handlers (scoring, travel-time stats) off the single events thread</li>
+          <li>Precompute time-varying link capacities per period instead of looking them up each step</li>
+          <li>Keep only changes with bit-identical results; make them the default config</li>
+        </ul></td></tr>
+      <tr><td>2</td><td><b>N</b><br><span class="sub">iterations per policy</span></td><td>Can one policy reach the same end state in fewer iterations?</td>
+        <td><ul>
+          <li>Log every agent's replanning and label whose innovation actually changed the outcome</li>
+          <li>Measure the ceiling first: a hindsight oracle that only lets those agents innovate</li>
+          <li>Train a classifier (score gap, recent changes, congestion exposure) to predict them</li>
+          <li>Give the innovation budget to predicted agents, plus a small random share</li>
+        </ul></td></tr>
+      <tr><td>3</td><td><b>K</b><br><span class="sub">number of policies</span></td><td>Can a policy study skip runs, or stop recomputing from scratch?</td>
+        <td><ul>
+          <li>Run a few charge levels cold as anchors</li>
+          <li>Warm-start the others from the nearest solved policy; replan only affected agents; shorter runs</li>
+          <li>Fit the response across charge levels; add runs only where it bends (near zero)</li>
+          <li>Stop when interpolated results fall within seed noise (2σ)</li>
+        </ul></td></tr>
+    </tbody>
+  </table>
+  <p class="note">1 is engineering and becomes the baseline for every experiment. 2 and 3 are research: pick one as the main contribution by Nov 17, from the RQ2 ceiling and the Berlin check.</p>
+</section>
+
+<section>
+  <h2>Reading group: POLARIS vs. MATSim</h2>
+  <p style="margin-bottom:12px"><b class="pol">POLARIS</b> lives the day once: decisions are made in the moment, reading current traffic (within-day). <b class="mat">MATSim</b> replays the same day many times: execute, score, replan, repeat (day-to-day). Note where each feedback loop sits.</p>
+  <div class="arch">
+    <div class="figure">
+      <h3 class="pol">POLARIS <span class="sm" style="font-weight:400;color:var(--muted);font-size:13px">C++ · shared-memory threads · SQLite</span></h3>
+      <svg viewBox="0 0 520 560" role="img" aria-label="POLARIS architecture">
+        <defs><marker id="pa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker>
+        <marker id="pp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ahp" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+        <rect class="box" x="60" y="8" width="400" height="56" rx="4"/>
+        <text x="260" y="30" text-anchor="middle" class="b">Inputs</text>
+        <text x="260" y="52" text-anchor="middle" class="sm">Supply DB: network, signals, transit | Demand DB: population, skims</text>
+        <path class="ln" d="M260 64 V88" marker-end="url(#pa)"/>
+        <rect class="frame" x="12" y="92" width="496" height="372" rx="6"/>
+        <text x="26" y="112" class="xs">EXECUTION ENGINE · one shared clock · discrete time steps</text>
+        <rect class="box" x="70" y="124" width="300" height="40" rx="4"/>
+        <text x="220" y="149" text-anchor="middle">Population synthesis (IPF)</text>
+        <path class="ln" d="M220 164 V178" marker-end="url(#pa)"/>
+        <rect class="box" x="70" y="182" width="300" height="40" rx="4"/>
+        <text x="220" y="207" text-anchor="middle">Long-term choices: cars, work, telework</text>
+        <path class="ln" d="M220 222 V238" marker-end="url(#pa)"/>
+        <rect class="boxp" x="50" y="242" width="340" height="74" rx="4"/>
+        <text x="220" y="266" text-anchor="middle" class="b tp">ADAPTS activity model</text>
+        <text x="220" y="287" text-anchor="middle" class="sm">activities generated; location/time/mode</text>
+        <text x="220" y="305" text-anchor="middle" class="sm">planned one by one; conflicts resolved</text>
+        <path class="ln" d="M220 316 V332" marker-end="url(#pa)"/>
+        <rect class="box" x="70" y="336" width="300" height="40" rx="4"/>
+        <text x="220" y="361" text-anchor="middle">Routing: time-dependent A*, en-route</text>
+        <path class="ln" d="M220 376 V390" marker-end="url(#pa)"/>
+        <rect class="boxp" x="50" y="394" width="340" height="60" rx="4"/>
+        <text x="220" y="418" text-anchor="middle" class="b tp">Network simulation: mesoscopic flow</text>
+        <text x="220" y="440" text-anchor="middle" class="sm">car · transit · TNC · AV · freight · EV</text>
+        <path class="lnp" d="M390 424 H452 V279 H396" marker-end="url(#pp)"/>
+        <text x="470" y="352" class="sm b tp" transform="rotate(90 470 352)" text-anchor="middle">live traffic, same day</text>
+        <path class="ln" d="M260 464 V488" marker-end="url(#pa)"/>
+        <rect class="box" x="60" y="492" width="400" height="56" rx="4"/>
+        <text x="260" y="514" text-anchor="middle" class="b">Result DB</text>
+        <text x="260" y="536" text-anchor="middle" class="sm">trips · trajectories · flows · energy</text>
+        <path class="ln dash" d="M60 520 H32 V36 H56" marker-end="url(#pa)"/>
+        <text x="24" y="290" class="xs" transform="rotate(-90 24 290)" text-anchor="middle">update skims · few iterations</text>
+      </svg>
+    </div>
+    <div class="figure">
+      <h3 class="mat">MATSim <span style="font-weight:400;color:var(--muted);font-size:13px">Java · open source · XML</span></h3>
+      <svg viewBox="0 0 520 560" role="img" aria-label="MATSim architecture">
+        <defs><marker id="ma" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker>
+        <marker id="mm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ahm" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+        <rect class="box" x="60" y="8" width="400" height="56" rx="4"/>
+        <text x="260" y="30" text-anchor="middle" class="b">Inputs</text>
+        <text x="260" y="52" text-anchor="middle" class="sm">config · network · plans.xml (day plans, built externally)</text>
+        <path class="ln" d="M260 64 V88" marker-end="url(#ma)"/>
+        <rect class="frame" x="12" y="92" width="496" height="372" rx="6"/>
+        <text x="26" y="112" class="xs">CONTROLLER · iteration loop · typically 100–500 iterations</text>
+        <rect class="boxm" x="140" y="128" width="240" height="78" rx="4"/>
+        <text x="260" y="154" text-anchor="middle" class="b tm">1 Mobsim (QSim)</text>
+        <text x="260" y="176" text-anchor="middle" class="sm">executes fixed full-day plans</text>
+        <text x="260" y="194" text-anchor="middle" class="sm">links = FIFO queues</text>
+        <rect class="boxm" x="290" y="300" width="200" height="78" rx="4"/>
+        <text x="390" y="326" text-anchor="middle" class="b tm">2 Scoring</text>
+        <text x="390" y="348" text-anchor="middle" class="sm">activity utility</text>
+        <text x="390" y="366" text-anchor="middle" class="sm">minus travel cost</text>
+        <rect class="boxm" x="30" y="300" width="200" height="78" rx="4"/>
+        <text x="130" y="326" text-anchor="middle" class="b tm">3 Replanning</text>
+        <text x="130" y="348" text-anchor="middle" class="sm">reroute · retime · mode</text>
+        <text x="130" y="366" text-anchor="middle" class="sm">or reselect an old plan</text>
+        <path class="lnm" d="M360 206 Q 410 250 400 296" marker-end="url(#mm)"/>
+        <text x="414" y="246" class="xs">events</text>
+        <path class="lnm" d="M290 340 H234" marker-end="url(#mm)"/>
+        <text x="262" y="330" class="xs" text-anchor="middle">scores</text>
+        <path class="lnm" d="M120 300 Q 110 250 156 208" marker-end="url(#mm)"/>
+        <text x="58" y="250" class="xs">new plans</text>
+        <rect class="box" x="110" y="400" width="300" height="52" rx="4"/>
+        <text x="260" y="422" text-anchor="middle" class="b">Plan memory</text>
+        <text x="260" y="442" text-anchor="middle" class="sm">up to 5 plans per agent, with scores</text>
+        <path class="ln" d="M260 464 V488" marker-end="url(#ma)"/>
+        <rect class="box" x="60" y="492" width="400" height="56" rx="4"/>
+        <text x="260" y="514" text-anchor="middle" class="b">Outputs</text>
+        <text x="260" y="536" text-anchor="middle" class="sm">final plans · events · scorestats</text>
+      </svg>
+    </div>
+  </div>
+  <p class="note">Solid colored arrows = main feedback loop. POLARIS feeds network state straight back into demand within the day; MATSim feeds back between iterations, via scoring and replanning. Dashed = secondary loop. Adapted from our reading-group notes (Auld et al. 2016; MATSim user guide).</p>
+</section>
+
+<section class="two">
+  <div class="card">
+    <h3>Candidate generic problems</h3>
+    <ol>
+      <li><b>Stopping is set by protocol</b>, not by a convergence test.</li>
+      <li><b>Most innovation is wasted.</b> Can we predict who needs to replan? (L2Seg analogue)</li>
+      <li><b>Every policy is recomputed from scratch</b>, though most agents are unaffected.</li>
+    </ol>
+  </div>
+  <div class="card">
+    <h3>Next week</h3>
+    <ul>
+      <li>One Berlin cold-start run with the NYC protocol (~4 h): is the drift NYC-specific? Is the redundancy generic?</li>
+      <li>Finish RQ1 on NYC: is "who needs to replan" predictable?</li>
+    </ul>
+    <h3 style="margin-top:14px">Asks</h3>
+    <ul>
+      <li>ORCD quota for ~7–9k core-hours?</li>
+      <li>Yining: which problem fits learning-guided methods best?</li>
+      <li>Has anyone in the group run the Berlin scenario?</li>
+    </ul>
+  </div>
+</section>
+
+</main>
+<script>
+(function(){
+  const rows=[
+    {c:'NYC',it:4.5,car:.261,pt:.341},{c:'NYC',it:44.5,car:.352,pt:.236},{c:'NYC',it:74.5,car:.391,pt:.215},{c:'NYC',it:84.5,car:.426,pt:.212},{c:'NYC',it:94.5,car:.426,pt:.212},
+    {c:'Berlin',it:4.5,car:.2774,pt:.2109},{c:'Berlin',it:14.5,car:.2762,pt:.2103},{c:'Berlin',it:24.5,car:.2771,pt:.2102},{c:'Berlin',it:34.5,car:.2777,pt:.2100},{c:'Berlin',it:44.5,car:.2785,pt:.2096},
+    {c:'Berlin',it:54.5,car:.2796,pt:.2091},{c:'Berlin',it:64.5,car:.2803,pt:.2091},{c:'Berlin',it:74.5,car:.2803,pt:.2088},{c:'Berlin',it:84.5,car:.2809,pt:.2088},{c:'Berlin',it:94.5,car:.2821,pt:.2083}];
+  const col={NYC:'var(--accent)',Berlin:'var(--grey)'};
+  const NS='http://www.w3.org/2000/svg', svg=document.getElementById('drift');
+  const el=(t,a,x)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(x!=null)e.textContent=x;svg.appendChild(e);return e};
+  const y0=50,y1=280,lo=-20,hi=20,Y=v=>y1-(v-lo)/(hi-lo)*(y1-y0),X=(ox,i)=>ox+i/100*290;
+  const series=c=>rows.filter(r=>r.c===c), chg=(r,k)=>(r[k]-series(r.c)[0][k])*100;
+  [{k:'car',ox:60,t:'Car share'},{k:'pt',ox:430,t:'Transit share'}].forEach(P=>{
+    el('text',{x:P.ox,y:24,'font-size':14,'font-weight':600,fill:'var(--ink)'},P.t+' (pp change)');
+    [-20,-10,0,10,20].forEach(v=>{el('line',{x1:P.ox,x2:P.ox+290,y1:Y(v),y2:Y(v),stroke:v===0?'var(--muted)':'var(--rule)'});
+      el('text',{x:P.ox-8,y:Y(v)+4,'text-anchor':'end','font-size':12,fill:'var(--muted)'},(v>0?'+':'')+v)});
+    [0,50,100].forEach(i=>el('text',{x:X(P.ox,i),y:y1+18,'text-anchor':'middle','font-size':12,fill:'var(--muted)'},i));
+    const xo=X(P.ox,80);el('line',{x1:xo,x2:xo,y1:y0,y2:y1,stroke:'var(--grey)','stroke-dasharray':'4 4'});
+    el('text',{x:xo-4,y:y0-6,'text-anchor':'end','font-size':11,fill:'var(--muted)'},'NYC innovation off');
+    ['Berlin','NYC'].forEach(c=>{const s=series(c);
+      el('polyline',{points:s.map(r=>X(P.ox,r.it)+','+Y(chg(r,P.k))).join(' '),fill:'none',stroke:col[c],'stroke-width':2.5});
+      s.forEach(r=>{const d=el('circle',{cx:X(P.ox,r.it),cy:Y(chg(r,P.k)),r:3.2,fill:col[c]});
+        const t=document.createElementNS(NS,'title');t.textContent=`${c}, iterations ${r.it-4.5}-${r.it+4.5}: ${(r[P.k]*100).toFixed(1)}%`;d.appendChild(t)});
+      const v=chg(s.at(-1),P.k);
+      const lx=c==='NYC'&&P.k==='car'?X(P.ox,60):X(P.ox,77), ly=Y(v)+(c==='NYC'?(P.k==='car'?4:20):(P.k==='car'?-10:22));
+      el('text',{x:lx,y:ly,'text-anchor':'end','font-size':13,'font-weight':c==='NYC'?600:400,fill:c==='NYC'?'var(--accent)':'var(--muted)'},`${c} ${v>=0?'+':''}${v.toFixed(1)} pp`)});
+  });
+  el('text',{x:380,y:318,'text-anchor':'middle','font-size':12,fill:'var(--muted)'},'Iteration (both scenarios, first 100 iterations)');
+})();
+</script>
+</body>
+</html>
